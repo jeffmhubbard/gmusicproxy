@@ -1197,11 +1197,11 @@ class GetHandler(BaseHTTPRequestHandler):
             else:
                 raise
         except socket.error as e:
-            if e[0] == errno.ECONNRESET:
+            if e == errno.ECONNRESET:
                 logger.warning("Detected connection reset.")
-            elif e[0] == errno.EPIPE:
+            elif e == errno.EPIPE:
                 logger.warning("Detected remote peer disconnected.")
-            elif e[0] == 10053:
+            elif e == 10053:
                 logger.warning(
                     "An established connection was aborted by the software in your host machine."
                 )
