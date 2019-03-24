@@ -24,6 +24,6 @@ setup(
     license=open('LICENSE').read(),
     description='Google Play Music Proxy - "Let\'s stream Google Play Music using any music program"',
     long_description=(open('README.md').read()),
-    install_requires=['gmusicapi>=11.0.0,<12.0.0', 'netifaces>=0.10.4',
-                      'eyed3>=0.7.8', 'python-daemon>=2.0.5' if not os.name == 'nt' else ''],
+    install_requires=['gmusicapi>=12.0.0', 'netifaces>=0.10.9',
+                      'eyeD3>=0.8.10', 'python-daemon>=2.2.3', 'oauth2client>=4.1.3' if not os.name == 'nt' else ''],
 )
