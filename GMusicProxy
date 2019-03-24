@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Google Play Music Proxy © Mario Di Raimondo < mario.diraimondo (at) gmail.com >
@@ -27,24 +27,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:  # Python 2
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-    from urlparse import urlparse, parse_qs
-    from urllib2 import URLError, build_opener
-    from ConfigParser import SafeConfigParser
-    from StringIO import StringIO
-    from SocketServer import ThreadingMixIn
-except ImportError:  # Python 3
-    from urllib.parse import urlparse, parse_qs
-    from urllib.error import URLError
-    from urllib.request import build_opener
-    from http.server import HTTPServer, BaseHTTPRequestHandler
-    from configparser import SafeConfigParser
-    from io import StringIO
-    from socketserver import ThreadingMixIn
-
 import argparse
-import distutils.version
 import errno
 import logging
 import os
@@ -55,24 +38,24 @@ import socket
 import sys
 import tempfile
 import threading
-
-import requests
-import xdg.BaseDirectory
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from configparser import ConfigParser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
+from urllib.parse import parse_qs, urlparse
+from urllib.request import build_opener
 
 import eyed3.id3
 import gmusicapi
 import gmusicapi.utils
-import netifaces
+import requests
 from gmusicapi.exceptions import CallFailure
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+import netifaces
 
 try:
     import daemon
 except Exception:
-    pass
-try:
-    import keyring.core as keyring
-except ImportError:
     pass
 
 
@@ -81,6 +64,7 @@ class MultiThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 class GetHandler(BaseHTTPRequestHandler):
+
     def do_GET(self):
         logger.debug("request path: %s", self.path)
         parsedPath = urlparse(self.path)
@@ -88,6 +72,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
         if parsedPath.path == "/get_song" and "id" in params:
             self._get_song(id=params["id"][0])
+
         elif parsedPath.path == "/get_all_stations":
             self._send_headers(
                 200,
@@ -108,6 +93,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "only_url" in params else "no",
             )
+
         elif parsedPath.path == "/get_all_playlists":
             self._send_headers(
                 200,
@@ -125,6 +111,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "only_url" in params else "no",
             )
+
         elif parsedPath.path == "/get_station" and "id" in params:
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -137,6 +124,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "num_tracks" in params else defaultNumberTracksStation,
             )
+
         elif parsedPath.path == "/get_ifl_station":
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -149,6 +137,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "num_tracks" in params else defaultNumberTracksStation,
             )
+
         elif parsedPath.path == "/get_playlist" and "id" in params:
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -157,6 +146,7 @@ class GetHandler(BaseHTTPRequestHandler):
                 shuffle=True if ("shuffle" in params
                                  and params["shuffle"][0] == "yes") else False,
             )
+
         elif parsedPath.path == "/get_album" and "id" in params:
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -164,6 +154,7 @@ class GetHandler(BaseHTTPRequestHandler):
             if self._check_aa():
                 return
             self._get_album(id=params["id"][0])
+
         elif parsedPath.path == "/get_top_tracks_artist" and "id" in params:
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -176,6 +167,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "num_tracks" in params else defaultNumberTopTracks,
             )
+
         elif parsedPath.path == "/get_discography_artist" and "id" in params:
             self._send_headers(
                 200,
@@ -197,6 +189,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "only_url" in params else "no",
             )
+
         elif parsedPath.path == "/get_collection":
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -207,6 +200,7 @@ class GetHandler(BaseHTTPRequestHandler):
                 shuffle=True if ("shuffle" in params
                                  and params["shuffle"][0] == "yes") else False,
             )
+
         elif (parsedPath.path == "/search_id" and "type" in params
               and ("title" in params or "artist" in params)):
             self._send_headers(200)
@@ -217,10 +211,10 @@ class GetHandler(BaseHTTPRequestHandler):
                 type=params["type"][0].lower().strip()
 
                 if "type" in params else "artist",
-                query_title=params["title"][0].decode("latin-1")
+                query_title=params["title"][0]
 
                 if "title" in params else "",
-                query_artist=params["artist"][0].decode("latin-1")
+                query_artist=params["artist"][0]
 
                 if "artist" in params else "",
                 exact=params["exact"][0].lower().strip()
@@ -230,6 +224,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
             if result:
                 self.wfile.write(result)
+
         elif (parsedPath.path == "/get_by_search" and "type" in params
               and ("title" in params or "artist" in params)):
 
@@ -244,10 +239,10 @@ class GetHandler(BaseHTTPRequestHandler):
                 type=params["type"][0].lower().strip()
 
                 if "type" in params else "artist",
-                query_title=params["title"][0].decode("latin-1")
+                query_title=params["title"][0]
 
                 if "title" in params else "",
-                query_artist=params["artist"][0].decode("latin-1")
+                query_artist=params["artist"][0]
 
                 if "artist" in params else "",
                 exact=params["exact"][0].lower().strip()
@@ -277,6 +272,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                         if "num_tracks" in params else defaultNumberTopTracks,
                     )
+
         elif (parsedPath.path == "/get_new_station_by_id" and "id" in params
               and "type" in params):
             self._send_headers(200, "audio/mpegurl",
@@ -304,6 +300,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
                 if "name" in params else transientStationName,
             )
+
         elif (parsedPath.path == "/get_new_station_by_search"
               and "type" in params
               and ("title" in params or "artist" in params)):
@@ -323,10 +320,10 @@ class GetHandler(BaseHTTPRequestHandler):
                 type=params["type"][0].lower().strip()
 
                 if "type" in params else "artist",
-                query_title=params["title"][0].decode("latin-1")
+                query_title=params["title"][0]
 
                 if "title" in params else "",
-                query_artist=params["artist"][0].decode("latin-1")
+                query_artist=params["artist"][0]
 
                 if "artist" in params else "",
                 exact=params["exact"][0].lower().strip()
@@ -348,12 +345,15 @@ class GetHandler(BaseHTTPRequestHandler):
 
                     if "name" in params else transientStationName,
                 )
+
         elif parsedPath.path == "/like_song" and "id" in params:
             self._send_headers(200)
             self._rate_song(id=params["id"][0], rating=5)
+
         elif parsedPath.path == "/dislike_song" and "id" in params:
             self._send_headers(200)
             self._rate_song(id=params["id"][0], rating=1)
+
         else:
             self._send_headers(500)
             logger.warning(
@@ -415,8 +415,8 @@ class GetHandler(BaseHTTPRequestHandler):
     def _fetch_songs_list_cache(self):
         logger.debug("Fetching list of songs in collection")
         with self.server.lock:
-            self.server.allSongsCache = self._robust_retry(
-                lambda: api.get_all_songs())
+            self.server.allSongsCache = self._robust_retry(lambda: api.
+                                                           get_all_songs())
 
     def _icy_name(self, album=None, artist=None, title=None):
         return ("%s /// %s /// %s" % (artist, album, title)).encode("utf-8")
@@ -458,8 +458,8 @@ class GetHandler(BaseHTTPRequestHandler):
                     break
         else:
             if id[0] == "T":
-                info = self._robust_retry(
-                    lambda: api.get_track_info(store_track_id=id))
+                info = self._robust_retry(lambda: api.get_track_info(
+                    store_track_id=id))
             else:
                 logger.error(
                     "Unsupported id '%s': report info to reproduce this to the author",
@@ -636,9 +636,9 @@ class GetHandler(BaseHTTPRequestHandler):
                 logger.debug(line)
 
     def _get_all_playlists(self, format, separator, onlyUrl):
-        logger.info("Getting all playlists as plain-text list..." if format.
-                    lower().strip() ==
-                    "text" else "Getting all playlists as M3U list...")
+        logger.info(
+            "Getting all playlists as plain-text list..." if format.lower(
+            ).strip() == "text" else "Getting all playlists as M3U list...")
         playlists = self._robust_retry(lambda: api.get_all_playlists())
         logger.debug(pprint.pformat(playlists))
 
@@ -678,9 +678,8 @@ class GetHandler(BaseHTTPRequestHandler):
                 logger.debug(line)
 
     def _get_station(self, id, numTracks):
-        station = self._robust_retry(
-            lambda: api.get_station_tracks(station_id=id, num_tracks=numTracks)
-        )
+        station = self._robust_retry(lambda: api.get_station_tracks(
+            station_id=id, num_tracks=numTracks))
         logger.info("Getting %s tracks from station with id '%s'", numTracks,
                     id)
         logger.debug(pprint.pformat(station))
@@ -689,8 +688,9 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
+                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    (int(track["durationMillis"]) / 1000)
+                    str(int(trackSeconds))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -715,10 +715,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         if transient != "no":
             transientStationIds.append(stationId)
-        station = self._robust_retry(
-            lambda: api.get_station_tracks(
-                station_id=stationId, num_tracks=numTracks)
-        )
+        station = self._robust_retry(lambda: api.get_station_tracks(
+            station_id=stationId, num_tracks=numTracks))
 
         if transient != "no":
             self._robust_retry(lambda: api.delete_stations(stationId))
@@ -733,8 +731,9 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
+                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    (int(track["durationMillis"]) / 1000)
+                    str(int(trackSeconds))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -793,8 +792,9 @@ class GetHandler(BaseHTTPRequestHandler):
                                 break
 
                     if foundTrack:
+                        trackSeconds = int(track["durationMillis"]) / 1000
                         line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                            (int(foundTrack["durationMillis"]) / 1000)
+                            str(int(trackSeconds))
 
                             if "durationMillis" in foundTrack else -1,
                             "%s - " % foundTrack["artist"]
@@ -822,8 +822,8 @@ class GetHandler(BaseHTTPRequestHandler):
             logger.warning("Playlist not found!")
 
     def _get_album(self, id):
-        album = self._robust_retry(
-            lambda: api.get_album_info(album_id=id, include_tracks=True))
+        album = self._robust_retry(lambda: api.get_album_info(
+            album_id=id, include_tracks=True))
         logger.info(
             "Getting the tracks of the album with id '%s': %s - %s",
             id,
@@ -837,8 +837,9 @@ class GetHandler(BaseHTTPRequestHandler):
         if "tracks" in album:
             for track in album["tracks"]:
                 if "nid" in track:
+                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        (int(track["durationMillis"]) / 1000)
+                        str(int(trackSeconds))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -854,14 +855,12 @@ class GetHandler(BaseHTTPRequestHandler):
                     logger.debug(line)
 
     def _get_top_tracks_artist(self, id, numTracks):
-        artist = self._robust_retry(
-            lambda: api.get_artist_info(
-                artist_id=id,
-                include_albums=False,
-                max_top_tracks=numTracks,
-                max_rel_artist=0,
-            )
-        )
+        artist = self._robust_retry(lambda: api.get_artist_info(
+            artist_id=id,
+            include_albums=False,
+            max_top_tracks=numTracks,
+            max_rel_artist=0,
+        ))
         logger.info(
             "Getting %s top tracks of the artist with id '%s': %s",
             numTracks,
@@ -875,8 +874,9 @@ class GetHandler(BaseHTTPRequestHandler):
         if "topTracks" in artist:
             for track in artist["topTracks"]:
                 if "nid" in track:
+                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        (int(track["durationMillis"]) / 1000)
+                        str(int(trackSeconds))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -892,11 +892,11 @@ class GetHandler(BaseHTTPRequestHandler):
                     logger.debug(line)
 
     def _get_discography_artist(self, id, format, separator, onlyUrl):
-        artist = self._robust_retry(
-            lambda: api.get_artist_info(
-                artist_id=id, include_albums=True, max_top_tracks=0, max_rel_artist=0
-            )
-        )
+        artist = self._robust_retry(lambda: api.get_artist_info(
+            artist_id=id,
+            include_albums=True,
+            max_top_tracks=0,
+            max_rel_artist=0))
         logger.info(
             "Getting all albums of the artist with id '%s' (%s) as a %s list...",
             id,
@@ -942,8 +942,9 @@ class GetHandler(BaseHTTPRequestHandler):
             track = song["track"]
 
             if "storeId" in track:
+                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    (int(track["durationMillis"]) / 1000)
+                    str(int(trackSeconds))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -966,7 +967,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
             return
 
-        if ratingthreshold > 0:
+        if int(ratingthreshold) > 0:
             logger.info("Filtering out songs with rating lower than %s",
                         ratingthreshold)
 
@@ -974,7 +975,7 @@ class GetHandler(BaseHTTPRequestHandler):
                 songrating = song.get("rating")
 
                 if songrating is not None:
-                    if int(songrating) < ratingthreshold:
+                    if int(songrating) < int(ratingthreshold):
                         songs.remove(song)
 
         if shuffle:
@@ -988,8 +989,9 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in songs:
             if "id" in track or "nid" in track:
+                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    (int(track["durationMillis"]) / 1000)
+                    str(int(trackSeconds))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1050,8 +1052,8 @@ class GetHandler(BaseHTTPRequestHandler):
             else:
                 logger.warning("No matching found.")
         elif type == "song":
-            results = self._robust_retry(
-                lambda: api.search("%s %s" % (query_artist, query_title)))
+            results = self._robust_retry(lambda: api.search("%s %s" % (
+                query_artist, query_title)))
             logger.debug(pprint.pformat(results))
 
             if (exact != "yes" and "song_hits" in results
@@ -1085,10 +1087,8 @@ class GetHandler(BaseHTTPRequestHandler):
             else:
                 logger.warning("No matching found.")
         elif type == "matches":
-            results = self._robust_retry(
-                lambda: api.search("%s %s" %
-                                   (query_artist, query_title), max_results)
-            )
+            results = self._robust_retry(lambda: api.search(
+                "%s %s" % (query_artist, query_title), max_results))
             logger.debug(pprint.pformat(results))
             match = results["song_hits"]
 
@@ -1097,8 +1097,8 @@ class GetHandler(BaseHTTPRequestHandler):
             else:
                 logger.warning("No matching found.")
         elif type == "album":
-            results = self._robust_retry(
-                lambda: api.search("%s %s" % (query_artist, query_title)))
+            results = self._robust_retry(lambda: api.search("%s %s" % (
+                query_artist, query_title)))
             logger.debug(pprint.pformat(results))
 
             if (exact != "yes" and "album_hits" in results
@@ -1149,8 +1149,8 @@ class GetHandler(BaseHTTPRequestHandler):
             allSongs = None
         else:
             if id[0] == "T":
-                info = self._robust_retry(
-                    lambda: api.get_track_info(store_track_id=id))
+                info = self._robust_retry(lambda: api.get_track_info(
+                    store_track_id=id))
             else:
                 logger.error(
                     "Unsupported id '%s': report info to reproduce this to the author",
@@ -1169,7 +1169,7 @@ class GetHandler(BaseHTTPRequestHandler):
             )
             logger.debug(pprint.pformat(info))
             info["rating"] = rating
-            self._robust_retry(lambda: api.change_song_metadata([info]))
+            self._robust_retry(lambda: api.rate_songs(info, rating))
 
     @gmusicapi.utils.utils.retry(
         retry_exception=requests.exceptions.ConnectionError)
@@ -1180,13 +1180,12 @@ class GetHandler(BaseHTTPRequestHandler):
         try:
             BaseHTTPRequestHandler.handle_one_request(self)
         except CallFailure as e:
-            if ("401 Client Error: Unauthorized" in e.message
-                    and config["device_id"] != "**auto**"):
+            if "401 Client Error: Unauthorized" in e.message:
                 logger.warning(
                     "Server denied authorization, trying to reconnect...")
                 api.logout()
-                api.login(config["email"], config["password"],
-                          config["device_id"])
+                device_id = gmusicapi.Mobileclient.FROM_MAC_ADDRESS
+                api.oauth_login(device_id)
 
                 if api.is_authenticated():
                     self.handle_one_request()
@@ -1237,22 +1236,13 @@ def signalHandler(signal, frame):
     sys.exit()
 
 
-def getOptions(filename):
+def getOptions():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c", "--config", type=open, help="specific configuration file to use")
-    parser.add_argument(
-        "-e", "--email", help="email address of the Google account [required]")
-    parser.add_argument(
-        "-p",
-        "--password",
-        help="password of the Google account (or an application-specific one if two-factor authentication is enabled) [required]",
-    )
-    parser.add_argument(
-        "-d",
-        "--device-id",
-        help="the ID of a registered Android/iOS device [default: fake-id based on mac address of network card]",
-    )
+        "-c", "--config",
+        default=False,
+        action='store_true',
+        help="Cache OAuth2 credentials")
     parser.add_argument(
         "-H",
         "--host",
@@ -1275,13 +1265,6 @@ def getOptions(filename):
         help="disable All Access functionalities",
     )
     parser.add_argument(
-        "-L",
-        "--list-devices",
-        default=False,
-        action="store_true",
-        help="list the registered devices",
-    )
-    parser.add_argument(
         "-D",
         "--debug",
         default=False,
@@ -1295,13 +1278,6 @@ def getOptions(filename):
         default=False,
         action="store_true",
         help="daemonize the program",
-    )
-    parser.add_argument(
-        "-v",
-        "--disable-version-check",
-        default=False,
-        action="store_true",
-        help="disable check for latest available version",
     )
     parser.add_argument(
         "-x",
@@ -1324,39 +1300,13 @@ def getOptions(filename):
         action="store_true",
         help="disable the automatic increment of playcounts upon song fetch",
     )
-    parser.add_argument(
-        "--keyring-backend",
-        help="name of the keyring backend to use instead of the default one",
-    )
-    parser.add_argument(
-        "--list-keyring-backends",
-        default=False,
-        action="store_true",
-        help="list the available keyring backends",
-    )
-    parser.add_argument(
-        "--keyring-service",
-        help="keyring service to use, takes precedence over --password if set",
-    )
-    parser.add_argument(
-        "--keyring-entry",
-        help="keyring entry to use, required if --keyring-service is used",
-    )
 
-    config = SafeConfigParser()
+    config = ConfigParser()
     args = parser.parse_args()
-    fp = StringIO("[dummy]\n")
-    config.readfp(fp)
-
     if args.config:
-        fp = StringIO("[dummy]\n" + args.config.read())
-        config.readfp(fp)
-    else:
-        for path in reversed(
-                list(xdg.BaseDirectory.load_config_paths(filename))):
-            fp = StringIO("[dummy]\n" + open(path, "r").read())
-            config.readfp(fp)
-    configValues = dict(config.items("dummy"))
+        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+
+    configValues = dict(config.items())
 
     # adjust some names in order to make work configparser with argparse
 
@@ -1378,9 +1328,6 @@ def getOptions(filename):
     if "port" not in configValues:
         configValues["port"] = "9999"
 
-    if "device_id" not in configValues:
-        configValues["device_id"] = "**auto**"
-
     parser.set_defaults(**configValues)
     args = parser.parse_args()
     config = vars(args)
@@ -1388,39 +1335,21 @@ def getOptions(filename):
     return config
 
 
-def listDevices():
-    devices = api.get_registered_devices()
-
-    if len(devices) == 0:
-        logger.warning(
-            "No Android or iOS devices registered in your Google account.")
-    else:
-        api.logout()
-
-        for d in devices:
-            if d["type"] == "ANDROID" or d["type"] == "IOS":
-                logger.info(
-                    "- %s --> device-id=%s",
-                    d["friendlyName"] if d["friendlyName"] is not None
-                    and len(d["friendlyName"]) > 0 else "(None)",
-                    d["id"].replace("0x", ""),
-                )
-        sys.exit()
+def initOauth2(device_id=gmusicapi.Mobileclient.FROM_MAC_ADDRESS):
+    api = gmusicapi.Mobileclient()
+    api.perform_oauth(open_browser=True)
+    api.oauth_login(device_id)
 
 
-def loginGM(email, password,
-            device_id=gmusicapi.Mobileclient.FROM_MAC_ADDRESS):
+def loginGM(device_id=gmusicapi.Mobileclient.FROM_MAC_ADDRESS):
     requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-    api = gmusicapi.Mobileclient(debug_logging=config["debug"])
-
-    if config["debug"]:
+    api = gmusicapi.Mobileclient()
+    if config['debug']:
         api.logger = logger
-    api.login(email, password, device_id)
-
+    api.oauth_login(device_id)
     if not api.is_authenticated():
-        logger.error("Sorry, those credentials weren't accepted.")
+        logger.error('Sorry, those credentials weren\'t accepted.')
         sys.exit(1)
-
     return api
 
 
@@ -1432,88 +1361,11 @@ def autodetectLocalIP():
             continue
         iface = netifaces.ifaddresses(i).get(netifaces.AF_INET)
 
-        if iface != None:
+        if iface is not None:
             for j in iface:
                 return j["addr"]
 
     return "127.0.0.1"
-
-
-def checkLatestVersion():
-    logger.debug("Fetching lastest version of %s...", programName)
-    try:
-        latestVersion = opener.open(urlLatestVersion).read()
-        logger.debug("latest available version: %s", latestVersion)
-        logger.debug("installed version: %s", programVersion)
-
-        if latestVersion == "":
-            raise ValueError
-
-        if distutils.version.StrictVersion(
-                programVersion) < distutils.version.StrictVersion(
-                    latestVersion):
-            logger.warning(
-                "There is a new %s release of %s. Consider the idea to update your installation in order to keep it working!\n",
-                latestVersion,
-                programName,
-            )
-    except URLError:
-        logger.debug("Error in fetching version information")
-    except ValueError:
-        logger.debug(
-            "Error on malformed version data ('%s', '%s')",
-            latestVersion,
-            programVersion,
-        )
-
-
-def checkKeyringModule():
-    if not "keyring" in globals():
-        logger.error(
-            "Python 'keyring' module is not available!\n"
-            "Please consult https://pypi.python.org/pypi/keyring#installation-instructions to use keyring feature"
-        )
-        sys.exit(1)
-
-
-def getKeyringPassword():
-    checkKeyringModule()
-    try:
-        if config["keyring_backend"]:
-            keyring.set_keyring(
-                keyring.load_keyring(config["keyring_backend"]))
-
-        if config["keyring_service"] is None or config["keyring_entry"] is None:
-            logger.error(
-                "Please, specify both keyring service and keyring entry in the config file or on the command-line to use keyring feature."
-            )
-            sys.exit(1)
-
-        password = keyring.get_password(config["keyring_service"],
-                                        config["keyring_entry"])
-
-        if password is None:
-            logger.error(
-                "No password is stored in entry '%s' of service '%s'",
-                config["keyring_entry"],
-                config["keyring_service"],
-            )
-
-        return password
-    except Exception as e:
-        logger.error("Failed to access keyring: %s", e.message)
-        sys.exit(1)
-
-
-def listKeyringBackends():
-    checkKeyringModule()
-    logger.info("Available keyring backends:")
-
-    for backend in keyring.backend.get_all_keyring():
-        logger.info("    %s.%s",
-                    type(backend).__module__,
-                    type(backend).__name__)
-    sys.exit()
 
 
 if __name__ == "__main__":
@@ -1526,10 +1378,8 @@ if __name__ == "__main__":
     programName = "gmusicproxy"
     programMainAuthor = "Mario Di Raimondo"
     programVersion = "1.0.9b2"
-    configFilename = "%s.cfg" % programName
     transientStationName = "%s station " % programDescription
     transientStationIds = []
-    urlLatestVersion = "http://gmusicproxy.net/latest_version.php"
     config = dict()
 
     # remove previous root logging handler
@@ -1543,7 +1393,7 @@ if __name__ == "__main__":
     consoleHandler.setFormatter(logging.Formatter("%(message)s"))
     logger.addHandler(consoleHandler)
 
-    config = getOptions(configFilename)
+    config = getOptions()
 
     # complete setup of the logger
     fileHandler = None
@@ -1570,7 +1420,7 @@ if __name__ == "__main__":
             logger.error("Daemon-mode is not supported under Windows!")
             sys.exit(1)
 
-        if not "daemon" in globals():
+        if "daemon" not in globals():
             logger.error("Python 'daemon' module is not installed!")
             sys.exit(1)
         contextDaemon = daemon.DaemonContext(files_preserve=[])
@@ -1587,30 +1437,7 @@ if __name__ == "__main__":
     safeConfig["password"] = "***OMITTED***"  # for debug dump
     logger.debug("configuration used:\n%s\n", pprint.pformat(safeConfig))
 
-    if config["keyring_service"] is not None or config[
-            "keyring_entry"] is not None:
-        config["password"] = getKeyringPassword()
-
-    if (config["email"] is None or config["password"] is None
-            or len(config["email"]) == 0 or len(config["password"]) == 0):
-        logger.error(
-            "Please, specify the credentials of your Google account in the config file or on the command-line."
-        )
-        sys.exit(1)
-
-    api = loginGM(
-        config["email"],
-        config["password"],
-        gmusicapi.Mobileclient.FROM_MAC_ADDRESS
-
-        if config["device_id"] == "**auto**" else config["device_id"],
-    )
-
-    if config["list_devices"]:
-        listDevices()
-
-    if config["list_keyring_backends"]:
-        listKeyringBackends()
+    api = loginGM(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
 
     if config["host"] == "**auto**":
         config["host"] = autodetectLocalIP()
@@ -1620,9 +1447,6 @@ if __name__ == "__main__":
                           "%s %s" % (programDescription, programVersion))]
 
     signal.signal(signal.SIGINT, signalHandler)
-
-    if not config["disable_version_check"]:
-        checkLatestVersion()
 
     server = MultiThreadedHTTPServer((config["bind_address"], config["port"]),
                                      GetHandler)
