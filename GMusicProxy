@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Google Play Music Proxy © Mario Di Raimondo < mario.diraimondo (at) gmail.com >
+# Google Play Music Proxy
+# © Mario Di Raimondo < mario.diraimondo (at) gmail.com >
 # "Let's stream Google Play Music using any music program"
 #
 # contributors:
@@ -431,7 +432,9 @@ class GetHandler(BaseHTTPRequestHandler):
     def _get_song(self, id, only_headers=False):
         if config["disable_all_access"] or id[0] != "T":
             info = None
-            # this more expensive method to get track info is necessary if we can't use the All Access 'get_track_info' method or if we are using the universal (uuid-style) id (tracks in collection)
+            # this more expensive method to get track info is necessary if we
+            # can't use the All Access 'get_track_info' method or if we are
+            # using the universal (uuid-style) id (tracks in collection)
             # I try to mitigate the fetch cost using a RAM-based cache
 
             if not hasattr(self.server, "allSongsCache"):
@@ -1239,10 +1242,10 @@ def signalHandler(signal, frame):
 def getOptions():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c", "--config",
+        "-o", "--oauth",
         default=False,
         action='store_true',
-        help="Cache OAuth2 credentials")
+        help="cache OAuth2 credentials (required for All Access)")
     parser.add_argument(
         "-H",
         "--host",
@@ -1309,7 +1312,6 @@ def getOptions():
     configValues = dict(config.items())
 
     # adjust some names in order to make work configparser with argparse
-
     for key in list(configValues.keys()):
         if "-" in key:
             configValues[key.replace("-", "_")] = configValues.pop(key)
@@ -1318,7 +1320,6 @@ def getOptions():
         configValues["host"] = configValues["bind_address"]
 
     # some defaults
-
     if "bind_address" not in configValues:
         configValues["bind_address"] = "0.0.0.0"
 
@@ -1380,7 +1381,6 @@ if __name__ == "__main__":
     programVersion = "1.0.9b2"
     transientStationName = "%s station " % programDescription
     transientStationIds = []
-    config = dict()
 
     # remove previous root logging handler
     logger = logging.getLogger()
@@ -1413,8 +1413,7 @@ if __name__ == "__main__":
     logger.info("%s %s (© %s)\n", programDescription, programVersion,
                 programMainAuthor)
 
-    # preliminar setup for the daemonaization
-
+    # preliminary setup for the daemonaization
     if config["daemon"]:
         if os.name == "nt":
             logger.error("Daemon-mode is not supported under Windows!")
@@ -1424,9 +1423,9 @@ if __name__ == "__main__":
             logger.error("Python 'daemon' module is not installed!")
             sys.exit(1)
         contextDaemon = daemon.DaemonContext(files_preserve=[])
-        # python-daemon>=2.1 has initgroups=True by default but it requires root privs
-        # older versions don't support initgroups as constructor parameter so
-        # we set it manually instead
+        # python-daemon>=2.1 has initgroups=True by default but it requires
+        # root privileges. older versions don't support initgroups as
+        # constructor parameter so we set it manually instead
         contextDaemon.initgroups = False
 
         if fileHandler:
@@ -1434,7 +1433,6 @@ if __name__ == "__main__":
         consoleHandler.setLevel(logging.ERROR)
 
     safeConfig = config.copy()
-    safeConfig["password"] = "***OMITTED***"  # for debug dump
     logger.debug("configuration used:\n%s\n", pprint.pformat(safeConfig))
 
     api = loginGM(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
