@@ -3,7 +3,7 @@
 #
 # Google Play Music Proxy
 # © Mario Di Raimondo < mario.diraimondo (at) gmail.com >
-# "Let's stream Google Play Music using any music program"
+# "Let's stream Google Play Music using any media-player"
 #
 # contributors:
 #  - Nick Depinet < depinetnick (at) gmail.com >
@@ -1306,7 +1306,7 @@ def getOptions():
 
     config = ConfigParser()
     args = parser.parse_args()
-    if args.config:
+    if args.oauth:
         initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
 
     configValues = dict(config.items())
@@ -1381,6 +1381,7 @@ if __name__ == "__main__":
     programVersion = "1.0.9b2"
     transientStationName = "%s station " % programDescription
     transientStationIds = []
+    config = dict()
 
     # remove previous root logging handler
     logger = logging.getLogger()
