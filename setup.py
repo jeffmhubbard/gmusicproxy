@@ -26,5 +26,6 @@ setup(
     long_description=(open('README.md').read()),
     install_requires=['gmusicapi>=12.0.0', 'netifaces>=0.10.9',
                       'eyeD3>=0.8.10', 'python-daemon>=2.2.3',
+                      'mutagen>=1.42.0', 'gpsoauth>=0.4.1',
                       'oauth2client>=4.1.3' if not os.name == 'nt' else ''],
 )
