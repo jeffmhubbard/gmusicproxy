@@ -224,7 +224,7 @@ class GetHandler(BaseHTTPRequestHandler):
             )
 
             if result:
-                self.wfile.write(result)
+                self.wfile.write(result.encode('utf-8'))
 
         elif (parsedPath.path == "/get_by_search" and "type" in params
               and ("title" in params or "artist" in params)):
