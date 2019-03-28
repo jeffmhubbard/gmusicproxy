@@ -1306,9 +1306,6 @@ def getOptions():
 
     config = ConfigParser()
     args = parser.parse_args()
-    if args.oauth:
-        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
-
     configValues = dict(config.items())
 
     # adjust some names in order to make work configparser with argparse
@@ -1413,6 +1410,11 @@ if __name__ == "__main__":
 
     logger.info("%s %s (© %s)\n", programDescription, programVersion,
                 programMainAuthor)
+
+    if config["oauth"]:
+        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+        print("Done.")
+        sys.exit(0)
 
     # preliminary setup for the daemonaization
     if config["daemon"]:
