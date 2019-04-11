@@ -17,8 +17,8 @@ else:
 setup(
     name='gmusicproxy',
     version=version,
-    author='Mario Di Raimondo',
-    author_email='mario.diraimondo@gmail.com',
+    author='Jeff M. Hubbard',
+    author_email='jeffmhubbard@gmail.com',
     url='https://github.com/jeffmhubbard/gmusicproxy',
     scripts=[GMUSICPROXYFILE],
     license=open('LICENSE').read(),

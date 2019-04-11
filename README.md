@@ -26,7 +26,9 @@ This project is not supported nor endorsed by Google.
 - stream any songs as standard MP3 complete of IDv3 tag with all the information and album image
 
 ### Changelog
-- 1.0.9-spork (forked):
+- 2.0dev2:
+  - added `_get_promoted` to make use of gmusicapi's `get_promoted_songs`
+- 2.0dev1 (forked):
   - dropped Python 2 completely and fixed issues with previous Python 3 support
   - use OAuth2 exclusively, dropped keyring support
   - remove version checking since original site is down

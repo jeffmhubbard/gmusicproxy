@@ -1419,7 +1419,7 @@ if __name__ == "__main__":
     programDescription = "Google Play Music Proxy"
     programName = "gmusicproxy"
     programMainAuthor = "Mario Di Raimondo"
-    programVersion = "1.0.9spork"
+    programVersion = "2.0dev2"
     transientStationName = "%s station " % programDescription
     transientStationIds = []
     config = dict()
