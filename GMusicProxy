@@ -202,6 +202,14 @@ class GetHandler(BaseHTTPRequestHandler):
                                  and params["shuffle"][0] == "yes") else False,
             )
 
+        elif parsedPath.path == "/get_promoted":
+            self._send_headers(200, "audio/mpegurl",
+                               "inline; filename=playlist.m3u")
+            self._get_promoted(
+                shuffle=True if ("shuffle" in params
+                                 and params["shuffle"][0] == "yes") else False,
+            )
+
         elif (parsedPath.path == "/search_id" and "type" in params
               and ("title" in params or "artist" in params)):
             self._send_headers(200)
@@ -994,6 +1002,42 @@ class GetHandler(BaseHTTPRequestHandler):
             if "id" in track or "nid" in track:
                 trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
+                    str(int(trackSeconds))
+
+                    if "durationMillis" in track else -1,
+                    "%s - " % track["artist"] if "artist" in track else "",
+                    track["title"] if "title" in track else "",
+                    " - %s" % track["album"]
+
+                    if config["extended_m3u"] and "album" in track else "",
+                    config["host"],
+                    config["port"],
+                    track["id"] if "id" in track else track["nid"],
+                )
+                self.wfile.write(("%s\n" % line).encode("utf-8"))
+                logger.debug(line)
+
+    def _get_promoted(self, shuffle=False):
+        songs = self._robust_retry(lambda: api.get_promoted_songs())
+
+        if len(songs) == 0:
+            logger.warning("No promoted tracks!?!")
+
+            return
+
+        if shuffle:
+            logger.info("Shuffling promoted tracks")
+            random.shuffle(songs)
+
+        logger.info("Getting promoted tracks: %s tracks", len(songs))
+        logger.debug(pprint.pformat(songs))
+        self.wfile.write(b"#EXTM3U\n")
+        logger.debug("generated playlist:\n#EXTM3U")
+
+        for track in songs:
+            if "id" in track or "nid" in track:
+                trackSeconds = int(track["durationMillis"]) / 1000
+                line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=T%s" % (
                     str(int(trackSeconds))
 
                     if "durationMillis" in track else -1,

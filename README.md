@@ -110,7 +110,10 @@ Here a list of the supported requests (with some restricted by the availability 
 - `/get_collection`: reports an M3U playlist with all the songs in your personal collection; the resulting list can be shuffled and/or filtered using the rating; note that not all the rated (liked) songs belong to your collection.
   Allowed parameters:
      - `shuffle`: if the collection has to be shuffled [default: no]
-	 - `rating`: an integer value (typically between 1-5) to filter out low rated or unrated songs form your collection
+     - `rating`: an integer value (typically between 1-5) to filter out low rated or unrated songs form your collection
+- `/get_promoted`: reports an M3U playlist of "promoted tracks"; the resulting list can be shuffled; note that nobody really knows how this works.
+  Allowed parameters:
+     - `shuffle`: if the playlist has to be shuffled [default: no]
 - `/search_id`: reports the unique ID as result of a search for an artist, a song or an album.
   Allowed parameters:
      - `type`: search for `artist`, `album` or `song` [required]
