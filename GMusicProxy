@@ -699,9 +699,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -742,9 +741,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -803,9 +801,8 @@ class GetHandler(BaseHTTPRequestHandler):
                                 break
 
                     if foundTrack:
-                        trackSeconds = int(track["durationMillis"]) / 1000
                         line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                            str(int(trackSeconds))
+                            str(int(int(track["durationMillis"]) / 1000))
 
                             if "durationMillis" in foundTrack else -1,
                             "%s - " % foundTrack["artist"]
@@ -848,9 +845,8 @@ class GetHandler(BaseHTTPRequestHandler):
         if "tracks" in album:
             for track in album["tracks"]:
                 if "nid" in track:
-                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        str(int(trackSeconds))
+                        str(int(int(track["durationMillis"]) / 1000))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -885,9 +881,8 @@ class GetHandler(BaseHTTPRequestHandler):
         if "topTracks" in artist:
             for track in artist["topTracks"]:
                 if "nid" in track:
-                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        str(int(trackSeconds))
+                        str(int(int(track["durationMillis"]) / 1000))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -953,9 +948,8 @@ class GetHandler(BaseHTTPRequestHandler):
             track = song["track"]
 
             if "storeId" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1000,9 +994,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in songs:
             if "id" in track or "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1035,10 +1028,9 @@ class GetHandler(BaseHTTPRequestHandler):
         logger.debug("generated playlist:\n#EXTM3U")
 
         for track in songs:
-            if "id" in track or "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
-                line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=T%s" % (
-                    str(int(trackSeconds))
+            if "storeId" in track:
+                line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1048,7 +1040,7 @@ class GetHandler(BaseHTTPRequestHandler):
                     if config["extended_m3u"] and "album" in track else "",
                     config["host"],
                     config["port"],
-                    track["id"] if "id" in track else track["nid"],
+                    track["storeId"],
                 )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
