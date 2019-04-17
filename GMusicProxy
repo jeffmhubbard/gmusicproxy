@@ -202,6 +202,27 @@ class GetHandler(BaseHTTPRequestHandler):
                                  and params["shuffle"][0] == "yes") else False,
             )
 
+        elif parsedPath.path == "/get_situations":
+            self._send_headers(
+                200,
+                "audio/mpegurl",
+                "inline; filename=playlist.%s" % "txt" if
+                ("format" in params
+                 and params["format"][0].lower().strip() == "text") else "m3u",
+            )
+
+            if self._check_aa():
+                return
+            self._get_situations(
+                format=params["format"][0] if "format" in params else "m3u",
+                separator=params["separator"][0]
+
+                if "separator" in params else "|",
+                onlyUrl=params["only_url"][0]
+
+                if "only_url" in params else "no",
+            )
+
         elif parsedPath.path == "/get_promoted":
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -621,7 +642,7 @@ class GetHandler(BaseHTTPRequestHandler):
         logger.debug(pprint.pformat(stations))
 
         if format.lower().strip() != "text":
-            self.wfile.write("#EXTM3U\n")
+            self.wfile.write("#EXTM3U\n".encode("utf-8"))
         logger.debug("generated playlist:" if format.lower().strip() ==
                      "text" else "generated playlist:\n#EXTM3U")
 
@@ -642,6 +663,44 @@ class GetHandler(BaseHTTPRequestHandler):
                         config["host"],
                         config["port"],
                         station["id"],
+                    )
+                self.wfile.write(("%s\n" % line).encode("utf-8"))
+                logger.debug(line)
+
+    def _get_situations(self, format, separator, onlyUrl):
+        logger.info("Getting Listen Now situations as plain-text list..." if format ==
+                    "text" else "Getting Listen Now situations as M3U list...")
+        situations = self._robust_retry(lambda: api.get_listen_now_situations())
+        logger.debug(pprint.pformat(situations))
+
+        if format.lower().strip() != "text":
+            self.wfile.write("#EXTM3U\n".encode("utf-8"))
+        logger.debug("generated playlist:" if format.lower().strip() ==
+                     "text" else "generated playlist:\n#EXTM3U")
+
+        for situation in situations:
+            if "id" in situation:
+                name = situation["title"]
+                curated_id = situation["stations"][0]["seed"]["curatedStationId"]
+                stationId = api.create_station(
+                    name=name,
+                    curated_station_id=curated_id,
+                )
+                if format.lower().strip() == "text":
+                    line = "%shttp://%s:%s/get_station?id=%s" % (
+                        "%s%s" % (situation["title"], separator) if
+                        ("title" in situation
+                         and onlyUrl.lower().strip() != "yes") else "Listen Now",
+                        config["host"],
+                        config["port"],
+                        stationId,
+                    )
+                else:
+                    line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
+                        situation["title"] if "title" in situation else "Listen Now",
+                        config["host"],
+                        config["port"],
+                        stationId,
                     )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
@@ -699,9 +758,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -742,9 +800,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in station:
             if "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -803,9 +860,8 @@ class GetHandler(BaseHTTPRequestHandler):
                                 break
 
                     if foundTrack:
-                        trackSeconds = int(track["durationMillis"]) / 1000
                         line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                            str(int(trackSeconds))
+                            str(int(int(track["durationMillis"]) / 1000))
 
                             if "durationMillis" in foundTrack else -1,
                             "%s - " % foundTrack["artist"]
@@ -848,9 +904,8 @@ class GetHandler(BaseHTTPRequestHandler):
         if "tracks" in album:
             for track in album["tracks"]:
                 if "nid" in track:
-                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        str(int(trackSeconds))
+                        str(int(int(track["durationMillis"]) / 1000))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -885,9 +940,8 @@ class GetHandler(BaseHTTPRequestHandler):
         if "topTracks" in artist:
             for track in artist["topTracks"]:
                 if "nid" in track:
-                    trackSeconds = int(track["durationMillis"]) / 1000
                     line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                        str(int(trackSeconds))
+                        str(int(int(track["durationMillis"]) / 1000))
 
                         if "durationMillis" in track else -1,
                         "%s - " % track["artist"] if "artist" in track else "",
@@ -953,9 +1007,8 @@ class GetHandler(BaseHTTPRequestHandler):
             track = song["track"]
 
             if "storeId" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1000,9 +1053,8 @@ class GetHandler(BaseHTTPRequestHandler):
 
         for track in songs:
             if "id" in track or "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
                 line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
-                    str(int(trackSeconds))
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1035,10 +1087,9 @@ class GetHandler(BaseHTTPRequestHandler):
         logger.debug("generated playlist:\n#EXTM3U")
 
         for track in songs:
-            if "id" in track or "nid" in track:
-                trackSeconds = int(track["durationMillis"]) / 1000
-                line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=T%s" % (
-                    str(int(trackSeconds))
+            if "storeId" in track:
+                line = "#EXTINF:%s,%s%s%s\nhttp://%s:%s/get_song?id=%s" % (
+                    str(int(int(track["durationMillis"]) / 1000))
 
                     if "durationMillis" in track else -1,
                     "%s - " % track["artist"] if "artist" in track else "",
@@ -1048,7 +1099,7 @@ class GetHandler(BaseHTTPRequestHandler):
                     if config["extended_m3u"] and "album" in track else "",
                     config["host"],
                     config["port"],
-                    track["id"] if "id" in track else track["nid"],
+                    track["storeId"],
                 )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
@@ -1440,6 +1491,11 @@ if __name__ == "__main__":
     # complete setup of the logger
     fileHandler = None
 
+    if config["oauth"]:
+        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+        print("Done.")
+        sys.exit(0)
+
     if config["log"]:
         fileHandler = logging.FileHandler(config["log"], encoding="utf-8")
         logger.addHandler(fileHandler)
@@ -1454,11 +1510,6 @@ if __name__ == "__main__":
 
     logger.info("%s %s (© %s)\n", programDescription, programVersion,
                 programMainAuthor)
-
-    if config["oauth"]:
-        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
-        print("Done.")
-        sys.exit(0)
 
     # preliminary setup for the daemonaization
     if config["daemon"]:
@@ -1482,7 +1533,7 @@ if __name__ == "__main__":
     safeConfig = config.copy()
     logger.debug("configuration used:\n%s\n", pprint.pformat(safeConfig))
 
-    api = loginGM(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+    api = loginGM()
 
     if config["host"] == "**auto**":
         config["host"] = autodetectLocalIP()
