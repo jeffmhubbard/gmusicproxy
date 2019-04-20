@@ -704,14 +704,14 @@ class GetHandler(BaseHTTPRequestHandler):
         for situation in situations:
             if "id" in situation:
                 name = situation["title"]
-                curated_id = situation["stations"][0]["seed"]["curatedStationId"]
+                curatedId = situation["stations"][0]["seed"]["curatedStationId"]
                 stationId = api.create_station(
                     name=name,
-                    curated_station_id=curated_id,
+                    curated_station_id=curatedId,
                 )
                 if format.lower().strip() == "text":
                     line = "%shttp://%s:%s/get_station?id=%s" % (
-                        "%s%s" % (situation["title"], separator) if
+                        "Listen Now - %s%s" % (name, separator) if
                         ("title" in situation
                          and onlyUrl.lower().strip() != "yes") else "Listen Now",
                         config["host"],
@@ -720,7 +720,7 @@ class GetHandler(BaseHTTPRequestHandler):
                     )
                 else:
                     line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
-                        situation["title"] if "title" in situation else "Listen Now",
+                        "Listen Now - %s" % name,
                         config["host"],
                         config["port"],
                         stationId,
