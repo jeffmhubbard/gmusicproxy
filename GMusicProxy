@@ -225,14 +225,6 @@ class GetHandler(BaseHTTPRequestHandler):
                 if "only_url" in params else "no",
             )
 
-        elif parsedPath.path == "/get_promoted":
-            self._send_headers(200, "audio/mpegurl",
-                               "inline; filename=playlist.m3u")
-            self._get_promoted(
-                shuffle=True if ("shuffle" in params
-                                 and params["shuffle"][0] == "yes") else False,
-            )
-
         elif parsedPath.path == "/get_situations":
             self._send_headers(
                 200,
@@ -737,22 +729,29 @@ class GetHandler(BaseHTTPRequestHandler):
                 logger.debug(line)
 
     def _get_listen_now(self, format, type, separator, onlyUrl):
-
+        logger.info("Getting Listen Now artists or albums as plain-text list..." if format ==
+                    "text" else "Getting Listen Now artists or albums as M3U list...")
         items = self._robust_retry(lambda: api.get_listen_now_items())
+        logger.debug(pprint.pformat(items))
+
+        if format.lower().strip() != "text":
+            self.wfile.write("#EXTM3U\n".encode("utf-8"))
+        logger.debug("generated playlist:" if format.lower().strip() ==
+                     "text" else "generated playlist:\n#EXTM3U")
 
         for item in items:
             if type == "artist":
                 if "radio_station" in item:
-                    name = "Listen Now - {}".format(item["radio_station"]["title"])
+                    artist = item["radio_station"]["title"]
                     seed = item["radio_station"]["id"]["seeds"][0]
                     if "artistId" in seed:
                         stationId = api.create_station(
-                            name=name,
+                            name=artist,
                             artist_id=seed["artistId"],
                         )
                         if format.lower().strip() == "text":
                             line = "%shttp://%s:%s/get_station?id=%s" % (
-                                "%s%s" % (name, separator) if
+                                "Listen Now - %s%s" % (artist, separator) if
                                 onlyUrl.lower().strip() != "yes" else "",
                                 config["host"],
                                 config["port"],
@@ -760,7 +759,7 @@ class GetHandler(BaseHTTPRequestHandler):
                             )
                         else:
                             line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
-                                name,
+                                "Listen Now - %s" % artist,
                                 config["host"],
                                 config["port"],
                                 stationId,
@@ -773,10 +772,9 @@ class GetHandler(BaseHTTPRequestHandler):
                     albumId = info["metajamCompactKey"]
                     artist = info["artist"]
                     title = info["title"]
-                    name = "Listen Now - {}'s {}".format(artist, title)
                     if format.lower().strip() == "text":
                         line = "%shttp://%s:%s/get_album?id=%s" % (
-                            "%s%s" % (name, separator) if
+                            "Listen Now - %s's %s%s" % (artist, title, separator) if
                             onlyUrl.lower().strip() != "yes" else "",
                             config["host"],
                             config["port"],
@@ -784,7 +782,7 @@ class GetHandler(BaseHTTPRequestHandler):
                         )
                     else:
                         line = "#EXTINF:-1,%s\nhttp://%s:%s/get_album?id=%s" % (
-                            name,
+                            "Listen Now - %s's %s" % (artist, title),
                             config["host"],
                             config["port"],
                             albumId,
