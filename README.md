@@ -1,4 +1,4 @@
-# GMusicProxy (Spork) – Google Play Music Proxy
+# GMusicProxy – Google Play Music Proxy
 
 *"Let's stream Google Play Music using any media-player"*
 
@@ -160,6 +160,17 @@ Here a list of the supported requests (with some restricted by the availability 
 - `/get_ifl_station`: reports an M3U playlist of tracks associated to the automatic "I'm feeling lucky" station  [requires A.A.].
   Allowed parameters:
      - `num_tracks`: the number of tracks to extract [default: 20]
+- `/get_listen_now`: reports Listen Now stations and albums as M3U playlist (with URLs to other M3U playlist) or as plain-text list (with one playlist per line).
+  Allowed parameters:
+     - `type`: search for `artist` or `album` [required]
+     - `format`: `m3u` for an M3U list or `text` for a plain-text list with lines like `Name of Station|URL to an M3U playlist` [default: `m3u`]
+     - `separator`: a separator for the plain-text lists [default: `|`]
+     - `only_url`: a `yes` creates a list of just URLs in the plain-text lists (the name of the album is totally omitted) [default: `no`]
+- `/get_situations`: reports Listen Now Situations (curated playlists) as M3U playlist (with URLs to other M3U playlist) or as plain-text list (with one playlist per line).
+  Allowed parameters:
+     - `format`: `m3u` for an M3U list or `text` for a plain-text list with lines like `Name of Playlist|URL to an M3U playlist` [default: `m3u`]
+     - `separator`: a separator for the plain-text lists [default: `|`]
+     - `only_url`: a `yes` creates a list of just URLs in the plain-text lists (the name of the album is totally omitted) [default: `no`]
 - `/get_playlist`: reports the content of a registered playlist in the M3U format; the list can be also shuffled.
   Allowed parameters:
      - `id`: the unique identifier of the playlist [required]
