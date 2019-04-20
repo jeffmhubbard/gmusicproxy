@@ -202,6 +202,58 @@ class GetHandler(BaseHTTPRequestHandler):
                                  and params["shuffle"][0] == "yes") else False,
             )
 
+        elif parsedPath.path == "/get_listen_now":
+            self._send_headers(
+                200,
+                "audio/mpegurl",
+                "inline; filename=playlist.%s" % "txt" if
+                ("format" in params
+                 and params["format"][0].lower().strip() == "text") else "m3u",
+            )
+
+            if self._check_aa():
+                return
+
+            self._get_listen_now(
+                format=params["format"][0] if "format" in params else "m3u",
+                type=params["type"][0] if "type" in params else "album",
+
+                separator=params["separator"][0]
+                if "separator" in params else "|",
+                onlyUrl=params["only_url"][0]
+
+                if "only_url" in params else "no",
+            )
+
+        elif parsedPath.path == "/get_promoted":
+            self._send_headers(200, "audio/mpegurl",
+                               "inline; filename=playlist.m3u")
+            self._get_promoted(
+                shuffle=True if ("shuffle" in params
+                                 and params["shuffle"][0] == "yes") else False,
+            )
+
+        elif parsedPath.path == "/get_situations":
+            self._send_headers(
+                200,
+                "audio/mpegurl",
+                "inline; filename=playlist.%s" % "txt" if
+                ("format" in params
+                 and params["format"][0].lower().strip() == "text") else "m3u",
+            )
+
+            if self._check_aa():
+                return
+            self._get_situations(
+                format=params["format"][0] if "format" in params else "m3u",
+                separator=params["separator"][0]
+
+                if "separator" in params else "|",
+                onlyUrl=params["only_url"][0]
+
+                if "only_url" in params else "no",
+            )
+
         elif parsedPath.path == "/get_promoted":
             self._send_headers(200, "audio/mpegurl",
                                "inline; filename=playlist.m3u")
@@ -621,7 +673,7 @@ class GetHandler(BaseHTTPRequestHandler):
         logger.debug(pprint.pformat(stations))
 
         if format.lower().strip() != "text":
-            self.wfile.write("#EXTM3U\n")
+            self.wfile.write("#EXTM3U\n".encode("utf-8"))
         logger.debug("generated playlist:" if format.lower().strip() ==
                      "text" else "generated playlist:\n#EXTM3U")
 
@@ -645,6 +697,100 @@ class GetHandler(BaseHTTPRequestHandler):
                     )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
+
+    def _get_situations(self, format, separator, onlyUrl):
+        logger.info("Getting Listen Now situations as plain-text list..." if format ==
+                    "text" else "Getting Listen Now situations as M3U list...")
+        situations = self._robust_retry(lambda: api.get_listen_now_situations())
+        logger.debug(pprint.pformat(situations))
+
+        if format.lower().strip() != "text":
+            self.wfile.write("#EXTM3U\n".encode("utf-8"))
+        logger.debug("generated playlist:" if format.lower().strip() ==
+                     "text" else "generated playlist:\n#EXTM3U")
+
+        for situation in situations:
+            if "id" in situation:
+                name = situation["title"]
+                curated_id = situation["stations"][0]["seed"]["curatedStationId"]
+                stationId = api.create_station(
+                    name=name,
+                    curated_station_id=curated_id,
+                )
+                if format.lower().strip() == "text":
+                    line = "%shttp://%s:%s/get_station?id=%s" % (
+                        "%s%s" % (situation["title"], separator) if
+                        ("title" in situation
+                         and onlyUrl.lower().strip() != "yes") else "Listen Now",
+                        config["host"],
+                        config["port"],
+                        stationId,
+                    )
+                else:
+                    line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
+                        situation["title"] if "title" in situation else "Listen Now",
+                        config["host"],
+                        config["port"],
+                        stationId,
+                    )
+                self.wfile.write(("%s\n" % line).encode("utf-8"))
+                logger.debug(line)
+
+    def _get_listen_now(self, format, type, separator, onlyUrl):
+
+        items = self._robust_retry(lambda: api.get_listen_now_items())
+
+        for item in items:
+            if type == "artist":
+                if "radio_station" in item:
+                    name = "Listen Now - {}".format(item["radio_station"]["title"])
+                    seed = item["radio_station"]["id"]["seeds"][0]
+                    if "artistId" in seed:
+                        stationId = api.create_station(
+                            name=name,
+                            artist_id=seed["artistId"],
+                        )
+                        if format.lower().strip() == "text":
+                            line = "%shttp://%s:%s/get_station?id=%s" % (
+                                "%s%s" % (name, separator) if
+                                onlyUrl.lower().strip() != "yes" else "",
+                                config["host"],
+                                config["port"],
+                                stationId,
+                            )
+                        else:
+                            line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
+                                name,
+                                config["host"],
+                                config["port"],
+                                stationId,
+                            )
+                        self.wfile.write(("%s\n" % line).encode("utf-8"))
+                        logger.debug(line)
+            else:
+                if "album" in item:
+                    info = item["album"]["id"]
+                    albumId = info["metajamCompactKey"]
+                    artist = info["artist"]
+                    title = info["title"]
+                    name = "Listen Now - {}'s {}".format(artist, title)
+                    if format.lower().strip() == "text":
+                        line = "%shttp://%s:%s/get_album?id=%s" % (
+                            "%s%s" % (name, separator) if
+                            onlyUrl.lower().strip() != "yes" else "",
+                            config["host"],
+                            config["port"],
+                            albumId,
+                        )
+                    else:
+                        line = "#EXTINF:-1,%s\nhttp://%s:%s/get_album?id=%s" % (
+                            name,
+                            config["host"],
+                            config["port"],
+                            albumId,
+                        )
+                    self.wfile.write(("%s\n" % line).encode("utf-8"))
+                    logger.debug(line)
 
     def _get_all_playlists(self, format, separator, onlyUrl):
         logger.info(
@@ -1432,6 +1578,11 @@ if __name__ == "__main__":
     # complete setup of the logger
     fileHandler = None
 
+    if config["oauth"]:
+        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+        print("Done.")
+        sys.exit(0)
+
     if config["log"]:
         fileHandler = logging.FileHandler(config["log"], encoding="utf-8")
         logger.addHandler(fileHandler)
@@ -1446,11 +1597,6 @@ if __name__ == "__main__":
 
     logger.info("%s %s (© %s)\n", programDescription, programVersion,
                 programMainAuthor)
-
-    if config["oauth"]:
-        initOauth2(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
-        print("Done.")
-        sys.exit(0)
 
     # preliminary setup for the daemonaization
     if config["daemon"]:
@@ -1474,7 +1620,7 @@ if __name__ == "__main__":
     safeConfig = config.copy()
     logger.debug("configuration used:\n%s\n", pprint.pformat(safeConfig))
 
-    api = loginGM(gmusicapi.Mobileclient.FROM_MAC_ADDRESS)
+    api = loginGM()
 
     if config["host"] == "**auto**":
         config["host"] = autodetectLocalIP()
