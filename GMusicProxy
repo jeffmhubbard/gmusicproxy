@@ -727,6 +727,7 @@ class GetHandler(BaseHTTPRequestHandler):
                     )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
+            self._robust_retry(lambda: api.delete_stations(stationId))
 
     def _get_listen_now(self, format, type, separator, onlyUrl):
         logger.info("Getting Listen Now artists or albums as plain-text list..." if format ==
