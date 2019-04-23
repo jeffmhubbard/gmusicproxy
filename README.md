@@ -26,6 +26,9 @@ This project is not supported nor endorsed by Google.
 - stream any songs as standard MP3 complete of IDv3 tag with all the information and album image
 
 ### Changelog
+- 2.0dev3:
+  - added `_get_listen_now` to return Listen Now artist stations and albums
+  - added `_get_situations` to return Listen "situations"
 - 2.0dev2:
   - added `_get_promoted` to make use of gmusicapi's `get_promoted_songs`
 - 2.0dev1 (forked):
@@ -56,7 +59,7 @@ Feel free to open [bug reports][4] (complete of verbose output produced with opt
 ## Setup
 ### Requirements
 - a Google Play Music account with All Access subscription (some functionalities continue to work even with a free account)
-- a **Python** 3 interpreter
+- a Python 3 interpreter
 - many python libs: *gmusicapi*, *netifaces*, *mutagen*, *eyed3*, *python-daemon*, *gpsoauth*
 
 ### Installation
@@ -113,7 +116,7 @@ Here a list of the supported requests (with some restricted by the availability 
   Allowed parameters:
      - `shuffle`: if the collection has to be shuffled [default: no]
      - `rating`: an integer value (typically between 1-5) to filter out low rated or unrated songs form your collection
-- `/get_promoted`: reports an M3U playlist of "promoted tracks"; the resulting list can be shuffled; note that nobody really knows how this works.
+- `/get_promoted`: reports an M3U playlist of "promoted tracks"; the resulting list can be shuffled; this is, more or less, your Thumb's Up playlist, kinda.
   Allowed parameters:
      - `shuffle`: if the playlist has to be shuffled [default: no]
 - `/search_id`: reports the unique ID as result of a search for an artist, a song or an album.
