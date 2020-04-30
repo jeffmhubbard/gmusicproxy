@@ -720,30 +720,28 @@ class GetHandler(BaseHTTPRequestHandler):
             if "id" in situation:
                 name = situation["title"]
                 curatedId = situation["stations"][0]["seed"]["curatedStationId"]
-                stationId = api.create_station(
-                    name=name,
-                    curated_station_id=curatedId,
-                )
+                idtype = "situation"
                 if format.lower().strip() == "text":
-                    line = "%shttp://%s:%s/get_station?id=%s" % (
+                    line = "%shttp://%s:%s/get_new_station_by_id?id=%s&type=%s" % (
                         "Listen Now - %s%s" % (name, separator)
                         if ("title" in situation
                             and onlyUrl.lower().strip() != "yes")
                         else "Listen Now",
                         config["host"],
                         config["port"],
-                        stationId,
+                        curatedId,
+                        idtype,
                     )
                 else:
-                    line = "#EXTINF:-1,%s\nhttp://%s:%s/get_station?id=%s" % (
+                    line = "#EXTINF:-1,%s\nhttp://%s:%s/get_new_station_by_id?id=%s&type=%s" % (
                         "Listen Now - %s" % name,
                         config["host"],
                         config["port"],
-                        stationId,
+                        curatedId,
+                        idtype,
                     )
                 self.wfile.write(("%s\n" % line).encode("utf-8"))
                 logger.debug(line)
-            self._robust_retry(lambda: api.delete_stations(stationId))
 
     def _get_listen_now(self, format, type, separator, onlyUrl):
         logger.info(
@@ -895,6 +893,7 @@ class GetHandler(BaseHTTPRequestHandler):
             track_id=id if type == "song" else None,
             artist_id=id if type == "artist" else None,
             album_id=id if type == "album" else None,
+            curated_station_id=id if type == "situation" else None,
         )  # by genre: TO DO
 
         if transient != "no":
